@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -14,12 +15,14 @@ import (
 )
 
 var (
-	fileSuffix = []string{".txt", ".html", ".h", ".c", ".cc", ".cxx", ".cpp", ".hpp", ".java", ".go", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}
-	seg        gse.Segmenter
+	fileSuffix    = []string{".txt", ".html", ".h", ".c", ".cc", ".cxx", ".cpp", ".hpp", ".java", ".go", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}
+	seg           gse.Segmenter
+	semaphoreChan = make(chan struct{}, runtime.GOMAXPROCS(runtime.NumCPU()))
 )
 
 type Manager struct {
 	mutex         *sync.RWMutex
+	wg            *sync.WaitGroup
 	rootPath      string
 	invertedIndex map[string][]string
 }
@@ -27,11 +30,14 @@ type Manager struct {
 func NewManager(root string) *Manager {
 	m := &Manager{
 		mutex:         new(sync.RWMutex),
+		wg:            new(sync.WaitGroup),
 		rootPath:      root,
 		invertedIndex: make(map[string][]string),
 	}
 	seg.LoadDict()
+	m.wg.Add(1)
 	m.scanner(m.rootPath)
+	m.wg.Wait()
 	go m.monitor()
 	return m
 }
@@ -59,6 +65,11 @@ func (m *Manager) Repl() {
 }
 
 func (m *Manager) scanner(curPath string) {
+	semaphoreChan <- struct{}{}
+	defer func() {
+		<-semaphoreChan
+		m.wg.Done()
+	}()
 	files, err := ioutil.ReadDir(curPath)
 	if err != nil {
 		logrus.WithError(err).Error("Open scanner directory failed")
@@ -67,7 +78,8 @@ func (m *Manager) scanner(curPath string) {
 	for _, file := range files {
 		filePath := path.Join(curPath, file.Name())
 		if file.IsDir() {
-			m.scanner(filePath)
+			m.wg.Add(1)
+			go m.scanner(filePath)
 		} else {
 			meet := false
 			for _, suffix := range fileSuffix {
