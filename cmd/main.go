@@ -2,6 +2,7 @@ package main
 
 import (
 	"DiskSearch/manager"
+	"os"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
@@ -16,8 +17,14 @@ func main() {
 	kingpin.Parse()
 	d, err := filepath.Abs(filepath.Dir(*path))
 	if err != nil {
-		logrus.WithError(err).Error("Open path failed")
+		logrus.WithError(err).Error("Wrong path format")
 		return
 	}
-	_ = manager.NewManager(d)
+	_, err = os.Stat(d)
+	if os.IsNotExist(err) {
+		logrus.WithError(err).Error("Path not exist")
+		return
+	}
+	m := manager.NewManager(d)
+	m.Repl()
 }

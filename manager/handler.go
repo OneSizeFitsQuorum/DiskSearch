@@ -1,8 +1,10 @@
 package manager
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 	"sync"
@@ -30,8 +32,30 @@ func NewManager(root string) *Manager {
 	}
 	seg.LoadDict()
 	m.scanner(m.rootPath)
-	fmt.Println(m.invertedIndex)
+	go m.monitor()
 	return m
+}
+
+func (m *Manager) Repl() {
+	inputReader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Printf("Please enter your query : ")
+		input, err := inputReader.ReadString('\n')
+		if err != nil {
+			logrus.WithError(err).Error("Illegal input")
+		}
+		key := strings.TrimSpace(input[:len(input)-1])
+		m.mutex.RLock()
+		results, ok := m.invertedIndex[key]
+		m.mutex.RUnlock()
+		if !ok || len(results) == 0 {
+			fmt.Println("No Result.")
+			continue
+		}
+		for _, result := range results {
+			fmt.Println(result)
+		}
+	}
 }
 
 func (m *Manager) scanner(curPath string) {
@@ -59,24 +83,4 @@ func (m *Manager) scanner(curPath string) {
 			}
 		}
 	}
-}
-
-func (m *Manager) parseFileContent(filePath string) {
-	return
-}
-
-func (m *Manager) parseFileName(name, filePath string) {
-	last := strings.LastIndex(name, ".")
-	if last != -1 {
-		name = name[:last]
-	}
-	results := m.Cut(name)
-	for _, result := range results {
-		m.invertedIndex[result] = append(m.invertedIndex[result], filePath)
-	}
-}
-
-func (m *Manager) Cut(text string) []string {
-	hmm := seg.Cut(text, true)
-	return hmm
 }
