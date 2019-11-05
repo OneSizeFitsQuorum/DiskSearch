@@ -24,7 +24,7 @@ type Manager struct {
 	mutex         *sync.RWMutex
 	wg            *sync.WaitGroup
 	rootPath      string
-	invertedIndex map[string][]string
+	invertedIndex map[string]*Set
 }
 
 func NewManager(root string) *Manager {
@@ -32,7 +32,7 @@ func NewManager(root string) *Manager {
 		mutex:         new(sync.RWMutex),
 		wg:            new(sync.WaitGroup),
 		rootPath:      root,
-		invertedIndex: make(map[string][]string),
+		invertedIndex: make(map[string]*Set),
 	}
 	seg.LoadDict()
 	m.wg.Add(1)
@@ -54,11 +54,11 @@ func (m *Manager) Repl() {
 		m.mutex.RLock()
 		results, ok := m.invertedIndex[key]
 		m.mutex.RUnlock()
-		if !ok || len(results) == 0 {
+		if !ok || len(results.Values()) == 0 {
 			fmt.Println("No Result.")
 			continue
 		}
-		for _, result := range results {
+		for _, result := range results.Values() {
 			fmt.Println(result)
 		}
 	}
@@ -75,6 +75,7 @@ func (m *Manager) scanner(curPath string) {
 		logrus.WithError(err).Error("Open scanner directory failed")
 		return
 	}
+	logrus.WithFields(logrus.Fields{"dir": curPath, "childItemsNum": len(files)}).Debug("scanning dir...")
 	for _, file := range files {
 		filePath := path.Join(curPath, file.Name())
 		if file.IsDir() {

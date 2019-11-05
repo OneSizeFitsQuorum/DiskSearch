@@ -13,6 +13,12 @@ var (
 	path = kingpin.Flag("path", "the path of directory").Default(".").String()
 )
 
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{})
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.DebugLevel)
+}
+
 func main() {
 	kingpin.Parse()
 	d, err := filepath.Abs(filepath.Dir(*path))

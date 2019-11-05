@@ -1,8 +1,10 @@
 package manager
+
 import (
 	"os/exec"
-	"fmt"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 var tikaSuffix = []string{".html", "xml", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}
@@ -16,22 +18,21 @@ func (m *Manager) parseFileContent(filePath string) {
 		}
 	}
 	var cmd *exec.Cmd
-	if (meet) {
+	if meet {
 		cmd = exec.Command("tika", "--text", filePath)
 	} else {
 		cmd = exec.Command("cat", filePath)
 	}
 	buf, err := cmd.Output()
-	
-	// fmt.Printf("File: " + filePath)
-	// fmt.Printf("output: %s\n", buf)
-	// fmt.Printf("err: %v\n", err)
-	if (err == nil) {
+	if err == nil {
 		results := m.Cut(string(buf))
-		fmt.Printf("Length of results of file %s is %d\n", filePath, len(results))
+		logrus.WithFields(logrus.Fields{"file": filePath, "fileSize": len(string(buf))}).Debug("scanning file...")
 		m.mutex.Lock()
 		for _, result := range results {
-			m.invertedIndex[result] = append(m.invertedIndex[result], filePath)
+			if m.invertedIndex[result] == nil {
+				m.invertedIndex[result] = NewSet()
+			}
+			m.invertedIndex[result].Add(filePath)
 		}
 		m.mutex.Unlock()
 	}
@@ -39,14 +40,13 @@ func (m *Manager) parseFileContent(filePath string) {
 }
 
 func (m *Manager) parseFileName(name, filePath string) {
-	// last := strings.LastIndex(name, ".")
-	// if last != -1 {
-	// 	name = name[:last]
-	// }
 	results := m.Cut(name)
 	m.mutex.Lock()
 	for _, result := range results {
-		m.invertedIndex[result] = append(m.invertedIndex[result], filePath)
+		if m.invertedIndex[result] == nil {
+			m.invertedIndex[result] = NewSet()
+		}
+		m.invertedIndex[result].Add(filePath)
 	}
 	m.mutex.Unlock()
 }
