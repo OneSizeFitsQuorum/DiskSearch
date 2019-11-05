@@ -16,23 +16,26 @@ import (
 
 var (
 	fileSuffix    = []string{".txt", ".html", ".h", ".c", ".cc", ".cxx", ".cpp", ".hpp", ".java", ".go", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}
+	tikaSuffix    = []string{".html", ".xml", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}
 	seg           gse.Segmenter
 	semaphoreChan = make(chan struct{}, runtime.GOMAXPROCS(runtime.NumCPU()))
 )
 
 type Manager struct {
-	mutex         *sync.RWMutex
-	wg            *sync.WaitGroup
-	rootPath      string
-	invertedIndex map[string]*Set
+	mutex     *sync.RWMutex
+	wg        *sync.WaitGroup
+	rootPath  string
+	file2word map[string]*Set
+	word2file map[string]*Set
 }
 
 func NewManager(root string) *Manager {
 	m := &Manager{
-		mutex:         new(sync.RWMutex),
-		wg:            new(sync.WaitGroup),
-		rootPath:      root,
-		invertedIndex: make(map[string]*Set),
+		mutex:     new(sync.RWMutex),
+		wg:        new(sync.WaitGroup),
+		rootPath:  root,
+		file2word: make(map[string]*Set),
+		word2file: make(map[string]*Set),
 	}
 	seg.LoadDict()
 	m.wg.Add(1)
@@ -52,7 +55,7 @@ func (m *Manager) Repl() {
 		}
 		key := strings.TrimSpace(input[:len(input)-1])
 		m.mutex.RLock()
-		results, ok := m.invertedIndex[key]
+		results, ok := m.word2file[key]
 		m.mutex.RUnlock()
 		if !ok || len(results.Values()) == 0 {
 			fmt.Println("No Result.")
@@ -82,17 +85,9 @@ func (m *Manager) scanner(curPath string) {
 			m.wg.Add(1)
 			go m.scanner(filePath)
 		} else {
-			meet := false
-			for _, suffix := range fileSuffix {
-				if strings.HasSuffix(file.Name(), suffix) {
-					m.parseFileName(file.Name(), filePath)
-					m.parseFileContent(filePath)
-					meet = true
-					break
-				}
-			}
-			if !meet {
-				m.parseFileName(file.Name(), filePath)
+			m.addFileName(file.Name(), filePath)
+			if m.Meet(fileSuffix, file.Name()) {
+				m.addFileContent(filePath)
 			}
 		}
 	}

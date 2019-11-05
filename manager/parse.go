@@ -2,56 +2,70 @@ package manager
 
 import (
 	"os/exec"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 )
 
-var tikaSuffix = []string{".html", "xml", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}
-
-func (m *Manager) parseFileContent(filePath string) {
-	meet := false
-	for _, suffix := range tikaSuffix {
-		if strings.HasSuffix(filePath, suffix) {
-			meet = true
-			break
-		}
-	}
+func (m *Manager) addFileContent(filePath string) {
 	var cmd *exec.Cmd
-	if meet {
+	if m.Meet(tikaSuffix, filePath) {
 		cmd = exec.Command("tika", "--text", filePath)
 	} else {
 		cmd = exec.Command("cat", filePath)
 	}
 	buf, err := cmd.Output()
-	if err == nil {
+	if err != nil {
+		logrus.WithError(err).WithField("file", filePath).Error("scanner file failed")
+	} else {
 		results := m.Cut(string(buf))
 		logrus.WithFields(logrus.Fields{"file": filePath, "fileSize": len(string(buf))}).Debug("scanning file...")
 		m.mutex.Lock()
+		defer m.mutex.Unlock()
 		for _, result := range results {
-			if m.invertedIndex[result] == nil {
-				m.invertedIndex[result] = NewSet()
+			if m.file2word[filePath] == nil {
+				m.file2word[filePath] = NewSet()
 			}
-			m.invertedIndex[result].Add(filePath)
+			m.file2word[filePath].Add(result)
+			if m.word2file[result] == nil {
+				m.word2file[result] = NewSet()
+			}
+			m.word2file[result].Add(filePath)
 		}
-		m.mutex.Unlock()
 	}
-	return
 }
 
-func (m *Manager) parseFileName(name, filePath string) {
+func (m *Manager) addFileName(name, filePath string) {
 	results := m.Cut(name)
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	for _, result := range results {
-		if m.invertedIndex[result] == nil {
-			m.invertedIndex[result] = NewSet()
+		if m.file2word[filePath] == nil {
+			m.file2word[filePath] = NewSet()
 		}
-		m.invertedIndex[result].Add(filePath)
+		m.file2word[filePath].Add(result)
+		if m.word2file[result] == nil {
+			m.word2file[result] = NewSet()
+		}
+		m.word2file[result].Add(filePath)
 	}
-	m.mutex.Unlock()
 }
 
-func (m *Manager) Cut(text string) []string {
-	hmm := seg.Cut(text, true)
-	return hmm
+func (m *Manager) removeFile(filePath string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	set, ok := m.file2word[filePath]
+	if ok {
+		for _, value := range set.Values() {
+			m.word2file[value].Remove(filePath)
+		}
+	}
+	m.file2word[filePath] = nil
+}
+
+func (m *Manager) updateFile(name, filePath string) {
+	m.removeFile(filePath)
+	m.addFileName(name, filePath)
+	if m.Meet(fileSuffix, name) {
+		m.addFileContent(filePath)
+	}
 }
