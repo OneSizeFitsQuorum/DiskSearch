@@ -37,11 +37,11 @@ func NewManager(root string) *Manager {
 		file2word: make(map[string]*Set),
 		word2file: make(map[string]*Set),
 	}
+	go m.monitor()
 	seg.LoadDict()
 	m.wg.Add(1)
 	m.scanner(m.rootPath)
 	m.wg.Wait()
-	go m.monitor()
 	return m
 }
 

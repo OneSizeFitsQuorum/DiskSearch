@@ -18,7 +18,6 @@ func (m *Manager) addFileContent(filePath string) {
 		logrus.WithError(err).WithField("file", filePath).Error("scanner file failed")
 	} else {
 		results := m.Cut(string(buf))
-		logrus.WithFields(logrus.Fields{"file": filePath, "fileSize": len(string(buf))}).Debug("scanning file...")
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
 		for _, result := range results {
@@ -64,8 +63,6 @@ func (m *Manager) removeFile(filePath string) {
 
 func (m *Manager) updateFile(name, filePath string) {
 	m.removeFile(filePath)
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
 	m.addFileName(name, filePath)
 	if m.Meet(fileSuffix, name) {
 		m.addFileContent(filePath)
