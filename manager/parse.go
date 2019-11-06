@@ -64,6 +64,8 @@ func (m *Manager) removeFile(filePath string) {
 
 func (m *Manager) updateFile(name, filePath string) {
 	m.removeFile(filePath)
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	m.addFileName(name, filePath)
 	if m.Meet(fileSuffix, name) {
 		m.addFileContent(filePath)

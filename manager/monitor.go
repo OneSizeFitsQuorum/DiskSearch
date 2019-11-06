@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"errors"
 
 	"github.com/sirupsen/logrus"
 )
@@ -25,16 +26,48 @@ func (m *Manager) monitor() {
 			}
 			changes := strings.Split(strings.TrimSpace(line), "\n")
 			for _, change := range changes {
-				if strings.HasSuffix(change, " Updated") || strings.HasSuffix(change, " Created") {
-					filepath := change[:len(change)-8]
+				fmt.Println("[Monitor Debug] Event: " + change)
+				// There may be many status words, so need a loop structure
+				newOperator := false
+				deleteOperator := false
+				notFinished := true
+				for ; notFinished; {
+					if strings.HasSuffix(change, " Renamed") {
+						newOperator = true
+						deleteOperator = true
+						change = change[:len(change)-8]
+					} else if strings.HasSuffix(change, " Updated") || strings.HasSuffix(change, " Created") {
+						newOperator = true
+						change = change[:len(change)-8]
+					} else if strings.HasSuffix(change, " Removed") {
+						deleteOperator = true
+						change = change[:len(change)-8]
+					} else {
+						notFinished = false
+					}
+				}
+				filepath := change
+				if newOperator {
 					f, err := os.Stat(filepath)
 					if err != nil {
-						logrus.WithError(err).WithField("file", filepath).Error("[MONITOR] Error")
+						if !(strings.HasSuffix(err.Error(), "no such file or directory") && deleteOperator) {  // Because there are two logs of `Renamed` event, both origin and new names will show
+							logrus.WithError(err).WithField("file", filepath).Error("[MONITOR] Error")
+						}
+					} else {
+						m.updateFile(f.Name(), filepath)
+						fmt.Println("[Monitor] FileChanged: " + filepath)
 					}
-					m.updateFile(f.Name(), filepath)
-					fmt.Println("[Monitor] FileChanged: " + filepath)
 				}
-				fmt.Println("[Monitor] Event: " + change)
+				// Here don't use `else` because we need to get the origin name of renamed file
+				if deleteOperator {
+					_, err := os.Stat(filepath)
+					if err != nil && strings.HasSuffix(err.Error(), "no such file or directory") {
+						m.removeFile(filepath)
+						fmt.Println("[Monitor] FileRemoved: " + filepath)
+					} else if !(err == nil && newOperator) {
+						logrus.WithError(errors.New("Error when delete")).WithField("file", filepath).Error("[MONITOR] Error")
+					}
+				}
 			}
 		}
 		cmd.Wait()
