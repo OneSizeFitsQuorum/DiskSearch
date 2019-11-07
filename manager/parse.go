@@ -58,7 +58,7 @@ func (m *Manager) removeFile(filePath string) {
 			m.word2file[value].Remove(filePath)
 		}
 	}
-	m.file2word[filePath] = nil
+	delete(m.file2word, filePath)
 }
 
 func (m *Manager) updateFile(name, filePath string) {
