@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	// "fmt"
 
 	"github.com/sirupsen/logrus"
 )
@@ -24,7 +25,16 @@ func (m *Manager) monitor() {
 				if err != nil {
 					break
 				}
-				changes := strings.Split(strings.TrimSpace(line), "\n")
+				data := strings.TrimSpace(line)
+				for ; reader.Buffered() > 0; {
+					line, err = reader.ReadString('\n')
+					if err != nil {
+						break
+					}
+					data = data + "\n" + strings.TrimSpace(line);
+				}
+				changes := strings.Split(strings.TrimSpace(data), "\n")
+				// fmt.Printf("LEN: %d\n", len(changes))
 				for _, change := range changes {
 					//fmt.Println("[Monitor Debug] Event: " + change)
 					// There may be many status words, so need a loop structure
