@@ -27,7 +27,7 @@ func main() {
 		return
 	}
 	_, err = os.Stat(d)
-	if os.IsNotExist(err) {
+	if err != nil {
 		logrus.WithError(err).Error("Path not exist")
 		return
 	}

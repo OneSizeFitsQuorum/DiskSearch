@@ -1,70 +1,95 @@
 package manager
 
 import (
-	"os/exec"
-
-	"github.com/sirupsen/logrus"
+	"os"
+	"path"
 )
 
-func (m *Manager) addFileContent(filePath string) {
-	var cmd *exec.Cmd
-	if m.Meet(tikaSuffix, filePath) {
-		cmd = exec.Command("tika", "--text", filePath)
-	} else {
-		cmd = exec.Command("cat", filePath)
+func (m *Manager) removeFile(node *FileNode) {
+	values := node.WordSet.Values()
+	for _, value := range values {
+		m.word2fileNode[value.(string)].Remove(node)
 	}
-	buf, err := cmd.Output()
+	delete(m.filePath2fileNode, node.Path)
+	fatherNode, ok := m.filePath2fileNode[node.GetFatherNode()]
+	if ok {
+		delete(fatherNode.FileNodes, node.Name)
+	}
+}
+
+func (m *Manager) RemoveNode(path string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	node, ok := m.filePath2fileNode[path]
+	if ok {
+		if node.IsDir {
+			q := NewQueue()
+			q.Add(node)
+			for q.Length() != 0 {
+				size := q.Length()
+				for i := 0; i < size; i++ {
+					root := q.Remove().(*FileNode)
+					for _, value := range root.FileNodes {
+						q.Add(value)
+					}
+					m.removeFile(root)
+				}
+			}
+		} else {
+			m.removeFile(node)
+		}
+	}
+}
+
+func (m *Manager) CreateNode(path string) {
+	f, err := os.Stat(path)
 	if err != nil {
-		logrus.WithError(err).WithField("file", filePath).Error("scanner file failed")
-	} else {
-		results := m.Cut(string(buf))
+		return
+	}
+	node := NewFileNode(GetFileNameFromFilePath(path), path, f.IsDir())
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.filePath2fileNode[node.Path] = node
+	node.Build(m)
+	fatherNode, ok := m.filePath2fileNode[node.GetFatherNode()]
+	if ok {
+		fatherNode.FileNodes[node.Name] = node
+	}
+	if f.IsDir() {
+		m.wg.Add(1)
+		m.scanner(node, false)
+		m.wg.Wait()
+	}
+}
+
+func (m *Manager) UpdateNode(oldpath, newpath string) {
+	f, err := os.Stat(newpath)
+	if err != nil {
+		return
+	}
+	if f.IsDir() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
-		for _, result := range results {
-			if m.file2word[filePath] == nil {
-				m.file2word[filePath] = NewSet()
+		node, ok := m.filePath2fileNode[oldpath]
+		if ok {
+			node.Path = newpath
+			node.Name = f.Name()
+			q := NewQueue()
+			q.Add(node)
+			for q.Length() != 0 {
+				size := q.Length()
+				for i := 0; i < size; i++ {
+					root := q.Remove().(*FileNode)
+					for _, value := range root.FileNodes {
+						value.Path = path.Join(root.Path, value.Name)
+						q.Add(value)
+					}
+				}
 			}
-			m.file2word[filePath].Add(result)
-			if m.word2file[result] == nil {
-				m.word2file[result] = NewSet()
-			}
-			m.word2file[result].Add(filePath)
 		}
+	} else {
+		m.RemoveNode(oldpath)
+		m.CreateNode(newpath)
 	}
-}
 
-func (m *Manager) addFileName(name, filePath string) {
-	results := m.Cut(name)
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	for _, result := range results {
-		if m.file2word[filePath] == nil {
-			m.file2word[filePath] = NewSet()
-		}
-		m.file2word[filePath].Add(result)
-		if m.word2file[result] == nil {
-			m.word2file[result] = NewSet()
-		}
-		m.word2file[result].Add(filePath)
-	}
-}
-
-func (m *Manager) removeFile(filePath string) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	set, ok := m.file2word[filePath]
-	if ok {
-		for _, value := range set.Values() {
-			m.word2file[value].Remove(filePath)
-		}
-	}
-	delete(m.file2word, filePath)
-}
-
-func (m *Manager) updateFile(name, filePath string) {
-	m.removeFile(filePath)
-	m.addFileName(name, filePath)
-	if m.Meet(fileSuffix, name) {
-		m.addFileContent(filePath)
-	}
 }

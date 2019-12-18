@@ -2,85 +2,68 @@ package manager
 
 import (
 	"bufio"
-	"errors"
 	"os"
 	"os/exec"
 	"strings"
-	// "fmt"
 
 	"github.com/sirupsen/logrus"
 )
 
+//新建文件： path + Created
+//刚刚新建文件名字修改：oldpath + Created Renamed + '\n' + newpath + Renamed
+//修改文件内容： path + Updated
+//修改文件名字： oldpath + Renamed + '\n' + newpath + Renamed
+//删除文件：path Removed || path Renamed || path Created Renamed
+//文件移出监控区：path Renamed
+//文件移入监控区：path Renamed
 func (m *Manager) monitor() {
-	for {
-		cmd := exec.Command("fswatch", "-x", "--event=Created", "--event=Updated", "--event=Removed", "--event=Renamed", m.rootPath)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			logrus.WithError(err).Error("[MONITOR] Error")
-		} else {
-			cmd.Start()
+	cmd := exec.Command("fswatch", "-x", "--event=Created", "--event=Updated", "--event=Removed", "--event=Renamed", "--batch-marker", m.rootFileNode.Path)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		logrus.WithError(err).Error("[MONITOR] Error")
+	} else {
+		cmd.Start()
+		monitorChan <- struct{}{}
+		for {
 			reader := bufio.NewReader(stdout)
 			for {
-				line, err := reader.ReadString('\n')
-				if err != nil {
-					break
-				}
-				data := strings.TrimSpace(line)
-				for ; reader.Buffered() > 0; {
-					line, err = reader.ReadString('\n')
-					if err != nil {
+				changes := make([][]string, 0)
+				for true {
+					line, err := reader.ReadString('\n')
+					if err != nil || strings.TrimSpace(line) == "NoOp" {
 						break
 					}
-					data = data + "\n" + strings.TrimSpace(line);
+					item := strings.Split(strings.TrimSpace(line), " ")
+					if !strings.Contains(item[0], "/.") {
+						changes = append(changes, item)
+					}
 				}
-				changes := strings.Split(strings.TrimSpace(data), "\n")
-				// fmt.Printf("LEN: %d\n", len(changes))
-				for _, change := range changes {
-					//fmt.Println("[Monitor Debug] Event: " + change)
-					// There may be many status words, so need a loop structure
-					newOperator := false
-					deleteOperator := false
-					notFinished := true
-					for notFinished {
-						if strings.HasSuffix(change, " Renamed") {
-							newOperator = true
-							deleteOperator = true
-							change = change[:len(change)-8]
-						} else if strings.HasSuffix(change, " Updated") || strings.HasSuffix(change, " Created") {
-							newOperator = true
-							change = change[:len(change)-8]
-						} else if strings.HasSuffix(change, " Removed") {
-							deleteOperator = true
-							change = change[:len(change)-8]
-						} else {
-							notFinished = false
-						}
-					}
-					filePath := change
-					if newOperator {
-						f, err := os.Stat(filePath)
+				if len(changes) == 1 {
+					item := changes[0]
+					path := item[0]
+					if item[len(item)-1] == "Created" {
+						m.CreateNode(path)
+					} else if item[len(item)-1] == "Updated" {
+						m.UpdateNode(path, path)
+					} else if item[len(item)-1] == "Removed" {
+						m.RemoveNode(path)
+					} else if item[len(item)-1] == "Renamed" {
+						_, err := os.Stat(path)
 						if err != nil {
-							if !(strings.HasSuffix(err.Error(), "no such file or directory") && deleteOperator) { // Because there are two logs of `Renamed` event, both origin and new names will show
-								logrus.WithError(err).WithField("file", filePath).Error("[MONITOR] Error")
-							}
-						} else {
-							m.updateFile(f.Name(), filePath)
-							//fmt.Println("[Monitor] FileChanged: " + filePath)
+							m.RemoveNode(path)
 						}
+						m.CreateNode(path)
 					}
-					// Here don't use `else` because we need to get the origin name of renamed file
-					if deleteOperator {
-						_, err := os.Stat(filePath)
-						if err != nil && strings.HasSuffix(err.Error(), "no such file or directory") {
-							m.removeFile(filePath)
-							//fmt.Println("[Monitor] FileRemoved: " + filePath)
-						} else if !(err == nil && newOperator) {
-							logrus.WithError(errors.New("Error when delete")).WithField("file", filePath).Error("[MONITOR] Error")
-						}
+				} else {
+					item1 := changes[0]
+					path1 := item1[0]
+					item2 := changes[1]
+					path2 := item2[0]
+					if item1[len(item1)-1] == "Renamed" && item2[len(item2)-1] == "Renamed" {
+						m.UpdateNode(path1, path2)
 					}
 				}
 			}
-			cmd.Wait()
 		}
 	}
 }
