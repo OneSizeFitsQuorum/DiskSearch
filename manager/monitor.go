@@ -2,6 +2,7 @@ package manager
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -38,8 +39,9 @@ func (m *Manager) monitor() {
 						changes = append(changes, item)
 					}
 				}
-				if len(changes) == 1 {
-					item := changes[0]
+				fmt.Println(changes)
+				for i := 0; i < len(changes); i++ {
+					item := changes[i]
 					path := item[0]
 					if item[len(item)-1] == "Created" {
 						m.CreateNode(path)
@@ -47,20 +49,21 @@ func (m *Manager) monitor() {
 						m.UpdateNode(path, path)
 					} else if item[len(item)-1] == "Removed" {
 						m.RemoveNode(path)
-					} else if item[len(item)-1] == "Renamed" {
+					} else if item[len(item)-1] == "Renamed" && len(changes) == 2 {
+						item1 := changes[0]
+						path1 := item1[0]
+						item2 := changes[1]
+						path2 := item2[0]
+						if item1[len(item1)-1] == "Renamed" && item2[len(item2)-1] == "Renamed" {
+							m.UpdateNode(path1, path2)
+						}
+						break
+					} else if item[len(item)-1] == "Renamed" && len(changes) == 1 {
 						_, err := os.Stat(path)
 						if err != nil {
 							m.RemoveNode(path)
 						}
 						m.CreateNode(path)
-					}
-				} else if len(changes) == 2 {
-					item1 := changes[0]
-					path1 := item1[0]
-					item2 := changes[1]
-					path2 := item2[0]
-					if item1[len(item1)-1] == "Renamed" && item2[len(item2)-1] == "Renamed" {
-						m.UpdateNode(path1, path2)
 					}
 				}
 			}

@@ -108,6 +108,7 @@ func (m *Manager) Repl() {
 		if len(values) == 0 {
 			fmt.Println("No Result.")
 		} else {
+			fmt.Println(len(values))
 			for _, result := range values {
 				fmt.Println(result)
 			}
