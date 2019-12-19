@@ -2,7 +2,6 @@ package manager
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -39,7 +38,6 @@ func (m *Manager) monitor() {
 						changes = append(changes, item)
 					}
 				}
-				fmt.Println(changes)
 				for i := 0; i < len(changes); i++ {
 					item := changes[i]
 					path := item[0]

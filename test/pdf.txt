@@ -1,0 +1,193 @@
+
+Software
+
+Féng Hào Class SE62 (Software Engineering)
+
+
+
+What is software ?
+
+Computer software, or simply software, is 
+
+that part of a computer system that 
+
+consists of encoded information or 
+
+computer instructions, in contrast to the 
+
+physical hardware from which the system 
+
+is built.
+
+
+
+What is software ?
+For example: Command-line program  
+
+
+
+What is software ?
+For example: Office-software  
+
+
+
+What is software ?
+For example: Games  
+
+
+
+What is software ?
+For example: System software 
+
+
+
+How to classify software ?
+
+Application software, which is software that uses the 
+
+computer system to perform special functions or 
+
+provide entertainment functions beyond the basic 
+
+operation of the computer itself. 
+
+System software, which is software that directly 
+
+operates the computer hardware, to provide basic 
+
+functionality needed by users and other software, 
+
+and to provide a platform for running application 
+
+software.
+
+Software
+
+
+
+How to classify software ?
+
+Application software, which is software that uses the 
+
+computer system to perform special functions or 
+
+provide entertainment functions beyond the basic 
+
+operation of the computer itself. 
+
+System software, which is software that directly 
+
+operates the computer hardware, to provide basic 
+
+functionality needed by users and other software, 
+
+and to provide a platform for running application 
+
+software.
+
+Software
+
+
+
+How to program ?
+
+The majority of software is written in high-level programming languages that 
+
+are easier and more efficient for programmers, meaning closer to a natural 
+
+language.[1] High-level languages are translated into machine language
+
+using a compiler or an interpreter or a combination of the two. Software may 
+
+also be written in a low-level assembly language, essentially, a vaguely 
+
+mnemonic representation of a machine language using a natural language 
+
+alphabet, which is translated into machine language using an assembler.
+
+Use a programming language!
+
+
+
+How to program ?
+
+A high-level programming language (c)
+
+The same program I wrote to generate a random number
+
+
+
+How to program ?
+
+Assembly language  ( Part )
+
+The same program I wrote to generate a random number
+
+
+
+How to program ?
+
+Machine language（ Part )
+
+The same program I wrote to generate a random number
+
+
+
+Rocket launching
+
+Why do we need software ?
+
+Software is everywhere.
+
+
+
+Rocket launching
+
+Submarine
+
+Why do we need software ?
+
+Software is everywhere.
+
+
+
+Rocket launching
+
+Submarine
+
+Why do we need software ?
+
+Software is everywhere.
+
+
+
+Rocket launching
+
+Submarine
+
+Why do we need software ?
+
+Software is everywhere.
+
+
+
+Why do we need software ?
+
+Software makes our life easier.
+Movable-type printing
+
+
+
+Why do we need software ?
+
+Software makes our life easier.
+Movable-type printing
+
+Ink jet printer
+
+
+
+Thanks for listening!
+
+
+

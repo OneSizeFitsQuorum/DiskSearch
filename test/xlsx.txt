@@ -1,0 +1,11 @@
+report
+
+		Monday	Tuesday	Wednesday	Thursday	Friday	Saturday	Sunday
+	Period  1	Linear Algebra(2)(陈志杰；Required；全周)	Reading, Writing & Translation Challenges(穆凤良；Elective；全周)			Calculus A(2)(姚家燕；Required；全周)
+	Period  2		Software Engineering (2)(雍俊海；Required；全周)	Calculus A(2)(姚家燕；Required；全周)		Discrete Mathematics(刘世霞；Required；全周)
+	Period  3	Traditional Painting Flower and-Bird Painting Copy(申伟；Elective；后八周)	Introduction to Piano and Music Rudiments(罗薇；Elective；全周)	Outline of Modern Chinese History(翁贺凯；Required；全周)		Freshman Physical Education(2)(全周)
+	Period  4	Traditional Painting Flower and-Bird Painting Copy(申伟；Elective；后八周)	Spanish(1)(Judith Izquierdo；Elective；全周)	Discrete Mathematics(刘世霞；Required；全周)		Spanish(1)(Judith Izquierdo；Elective；全周)
+	Period  5
+	Period  6	Physics(1)(in English)(毕楷杰；Elective；全周)	Brief Introduction to Psychology(钱静；Elective；前八周)	Physics(1)(in English)(毕楷杰；Elective；全周)	Economic Applications of Game Theory(钟笑寒；Elective；全周)
+
+
