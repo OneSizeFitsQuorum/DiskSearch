@@ -54,7 +54,7 @@ func (m *Manager) monitor() {
 						}
 						m.CreateNode(path)
 					}
-				} else {
+				} else if len(changes) == 2 {
 					item1 := changes[0]
 					path1 := item1[0]
 					item2 := changes[1]
