@@ -53,6 +53,12 @@ func (m *Manager) UpdateNode(oldpath, newpath string) {
 		defer m.mutex.Unlock()
 		node, ok := m.filePath2fileNode[oldpath]
 		if ok {
+			delete(m.filePath2fileNode, oldpath)
+			m.filePath2fileNode[newpath] = node
+			father, ok := m.filePath2fileNode[node.GetFatherNode()]
+			if ok {
+				delete(father.FileNodes, node.Name)
+			}
 			node.Path = newpath
 			node.Name = f.Name()
 			q := NewQueue()
@@ -62,7 +68,9 @@ func (m *Manager) UpdateNode(oldpath, newpath string) {
 				for i := 0; i < size; i++ {
 					root := q.Remove().(*FileNode)
 					for _, value := range root.FileNodes {
+						delete(m.filePath2fileNode, value.Path)
 						value.Path = path.Join(root.Path, value.Name)
+						m.filePath2fileNode[value.Path] = value
 						q.Add(value)
 					}
 				}

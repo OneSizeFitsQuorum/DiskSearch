@@ -45,7 +45,7 @@ func (m *Manager) monitor() {
 						m.CreateNode(path)
 					} else if item[len(item)-1] == "Updated" {
 						m.UpdateNode(path, path)
-					} else if item[len(item)-1] == "Removed" {
+					} else if item[len(item)-1] == "Removed" || (item[len(item)-1] == "Renamed" && item[len(item)-2] == "Removed") {
 						m.RemoveNode(path)
 					} else if item[len(item)-1] == "Renamed" && len(changes) == 2 {
 						item1 := changes[0]
